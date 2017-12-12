@@ -34,12 +34,14 @@ layout: default
 
 ## Supported releases
 
-- Live ISO
-- Netboot ISO[^note1]
+- Live ISO[^note1]
+- Netboot ISO[^note2]
 
 
 ## Resources
 
+- [#724931 - ISO loopback support for Debian installer - Debian Bug report
+logs][issue724931]
 - [#866183 - debian-live: loopback.cfg is not working - Debian Bug report
 logs][issue866183]
 
@@ -54,10 +56,12 @@ logs][issue866183]
 
 ## Notes
 
-[^note1]: Rename Netboot ISO files (e.g. from `mini.iso` to `debian-8.6.0-i386-mini.iso`).
+[^note1]: Only Live environment; installer not supported (use Netboot ISO).
+[^note2]: Rename Netboot ISO files (e.g. from `mini.iso` to `debian-8.6.0-i386-mini.iso`).
 
 
 [config]: {{ site.github.repository_url | append: "/tree/master/mbusb.d/" | append: page.cfgdir }}
 [distrowatch]: https://distrowatch.com/table.php?distribution=debian
 [wikipedia]: https://en.wikipedia.org/wiki/Debian
+[issue724931]: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=724931
 [issue866183]: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=866183
