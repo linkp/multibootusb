@@ -4,19 +4,26 @@ description: >
   This is a project that contains a collection of GRUB files and scripts that
   will allow you to create a pendrive capable of booting different ISO files.
 baseurl: ""
-url: ""
+url: "https://mbusb.aguslr.com"
+repository: aguslr/multibootusb
+
+# GitHub
+github:
+  owner_name: aguslr
+  owner_url: https://github.com/aguslr
+  repository_url: https://github.com/aguslr/multibootusb
+  tar_url: https://github.com/aguslr/multibootusb/archive/master.tar.gz
+  zip_url: https://github.com/aguslr/multibootusb/archive/master.zip
 
 # Build settings
 markdown: kramdown
 theme: jekyll-theme-minimal
 exclude:
-  - CNAME
   - Gemfile
   - Gemfile.lock
 
 # Theme settings
 show_downloads: true
-google_analytics: 'UA-91340346-2'
 
 # Kramdown settings
 kramdown:

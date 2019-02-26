@@ -21,6 +21,7 @@ data_fmt="vfat"
 data_size=""
 efi_mnt=""
 data_mnt=""
+data_subdir="boot"
 repo_dir=""
 tmp_dir="${TMPDIR-/tmp}"
 
@@ -38,6 +39,7 @@ showUsage() {
 	  -e,  --efi                    Enable EFI compatibility
 	  -i,  --interactive            Launch gdisk to create a hybrid MBR
 	  -h,  --help                   Display this message
+	  -s,  --subdirectory <NAME>    Specify a data subdirectory (default: "boot")
 
 	EOF
 }
@@ -67,6 +69,15 @@ unmountUSB() {
 # Trap kill signals (SIGHUP, SIGINT, SIGTERM) to do some cleanup and exit
 trap 'cleanUp' 1 2 15
 
+# Show help before checking for root
+[ "$#" -eq 0 ] && showUsage && exit 0
+case "$1" in
+	-h|--help)
+		showUsage
+		exit 0
+		;;
+esac
+
 # Check for root
 if [ "$(id -u)" -ne 0 ]; then
 	printf 'This script must be run as root. Using sudo...\n' "$scriptname" >&2
@@ -77,30 +88,23 @@ fi
 normal_user="${SUDO_USER-$(who -m | awk '{print $1}')}"
 
 # Check arguments
-[ $# -eq 0 ] && showUsage && exit 0
 while [ "$#" -gt 0 ]; do
 	case "$1" in
-		# Show help
-		-h|--help)
-			showUsage
-			exit 0
-			;;
 		-b|--hybrid)
 			hybrid=1
-			shift
 			;;
 		-c|--clone)
 			clone=1
-			shift
 			;;
 		-e|--efi)
 			eficonfig=1
 			data_part=3
-			shift
 			;;
 		-i|--interactive)
 			interactive=1
-			shift
+			;;
+		-s|--subdirectory)
+			shift && data_subdir="$1"
 			;;
 		/dev/*)
 			if [ -b "$1" ]; then
@@ -109,21 +113,19 @@ while [ "$#" -gt 0 ]; do
 				printf '%s: %s is not a valid device.\n' "$scriptname" "$1" >&2
 				cleanUp 1
 			fi
-			shift
 			;;
 		[a-z]*)
 			data_fmt="$1"
-			shift
 			;;
 		[0-9]*)
 			data_size="$1"
-			shift
 			;;
 		*)
 			printf '%s: %s is not a valid argument.\n' "$scriptname" "$1" >&2
 			cleanUp 1
 			;;
 	esac
+	shift
 done
 
 # Check for required arguments
@@ -266,45 +268,47 @@ mount "${usb_dev}${data_part}" "$data_mnt" || cleanUp 10
 # Install GRUB for EFI
 [ "$eficonfig" -eq 1 ] && \
     { $grub_cmd --target=x86_64-efi --efi-directory="$efi_mnt" \
-    --boot-directory="${data_mnt}/boot" --removable --recheck \
+    --boot-directory="${data_mnt}/${data_subdir}" --removable --recheck \
     || cleanUp 10; }
 
 # Install GRUB for BIOS
 $grub_cmd --force --target=i386-pc \
-    --boot-directory="${data_mnt}/boot" --recheck "$usb_dev" \
+    --boot-directory="${data_mnt}/${data_subdir}" --recheck "$usb_dev" \
     || cleanUp 10
 
 # Install fallback GRUB
 $grub_cmd --force --target=i386-pc \
-    --boot-directory="${data_mnt}/boot" --recheck "${usb_dev}${data_part}" \
+    --boot-directory="${data_mnt}/${data_subdir}" --recheck "${usb_dev}${data_part}" \
     || true
 
 # Create necessary directories
-mkdir -p "${data_mnt}/boot/isos" || cleanUp 10
+mkdir -p "${data_mnt}/${data_subdir}/isos" || cleanUp 10
 
 if [ "$clone" -eq 1 ]; then
 	# Clone Git repository
 	(cd "$repo_dir" && \
-	    git clone https://github.com/aguslr/multibootusb . && \
-	    mv .git* * "${data_mnt}"/boot/grub*/) \
+		git clone https://github.com/aguslr/multibootusb . && \
+		# Move all visible and hidden files and folders except '.' and '..'
+		for x in * .[!.]* ..?*; do if [ -e "$x" ]; then mv -- "$x" \
+			"${data_mnt}/${data_subdir}"/grub*/; fi; done) \
 	    || cleanUp 10
 else
 	# Copy files
-	cp -R ./mbusb.* "${data_mnt}"/boot/grub*/ \
+	cp -R ./mbusb.* "${data_mnt}/${data_subdir}"/grub*/ \
 	    || cleanUp 10
 	# Copy example configuration for GRUB
-	cp ./grub.cfg.example "${data_mnt}"/boot/grub*/ \
+	cp ./grub.cfg.example "${data_mnt}/${data_subdir}"/grub*/ \
 	    || cleanUp 10
 fi
 
 # Rename example configuration
-( cd "${data_mnt}"/boot/grub*/ && cp grub.cfg.example grub.cfg ) \
+( cd "${data_mnt}/${data_subdir}"/grub*/ && cp grub.cfg.example grub.cfg ) \
     || cleanUp 10
 
 # Download memdisk
-wget -qO - \
-    'https://www.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.gz' \
-    | tar -xz -C "${data_mnt}"/boot/grub*/ --no-same-owner --strip-components 3 \
+syslinux_url='https://www.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.gz'
+{ wget -qO - "$syslinux_url" 2>/dev/null || curl -sL "$syslinux_url" 2>/dev/null; } \
+    | tar -xz -C "${data_mnt}/${data_subdir}"/grub*/ --no-same-owner --strip-components 3 \
     'syslinux-6.03/bios/memdisk/memdisk' \
     || cleanUp 10
 

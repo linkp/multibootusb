@@ -31,12 +31,14 @@ layout: default
 
 - Desktop ISO (using [loopback.cfg][])
 - Netboot ISO[^note1]
+- Server ISO[^note1]
 
 
 ## Links
 
 - [Official homepage]({{ page.homepage }})
 - [Official download page]({{ page.download }})
+- [Official download page (Netboot)](http://cdimage.ubuntu.com/netboot/)
 - [{{ page.title }} at DistroWatch][distrowatch]
 - [{{ page.title }} at Wikipedia][wikipedia]
 
